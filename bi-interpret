@@ -1,0 +1,36 @@
+#!/usr/bin/env php
+<?php
+
+require_once 'bi.php';	// Require the brainfuck library
+
+if(in_array('-h', $argv) || in_array('-?', $argv) || in_array('--help', $argv)) {
+	echo "\nUSAGE: ", $argv[0], " [-h | -? | --help | <input file>]\n\n",
+	     "Reads brainfuck code to be interpreted from <input file> (or standard",
+	     "input if no file is specified) then executes the specified program.  ",
+	     "If one of -h, -? or --help is specified, print this message then ",
+	     "exit.";
+	exit;
+}
+
+if(count($argv) == 1) {
+	if(!defined('STDIN')) {
+		echo "Error: Cannot read from standard input.\n";
+		exit(1);
+	}
+	$inputResource = STDIN;
+} else {
+	$inputResource = fopen($argv[1], 'r', true);
+	if(!$inputResource) {
+		echo "Error opening file `", $argv[1], "\n";
+		exit(1);
+	}
+}
+
+$inputFile = '';
+while($line = fgets($inputResource)) {
+	$inputFile .= $line;
+}
+
+$interpreter = new BrainfuckInterpreter();
+$interpreter->Interpret($inputFile);
+
