@@ -80,92 +80,106 @@ class BrainfuckInterpreter {
 		// main loop
 		while($codeLen - $codePtr) {
 			switch($code[$codePtr]) {
-				case '>':	$dataPtr += $count;
-						if(BI_LOOP_DATA_STRIP)
-							while($dataPtr > BI_MAX_DATA_LEN) $dataPtr -= BI_MAX_DATA_LEN;
-						else $dataPtr = BI_MAX_DATA_LEN;						break;	// force the pointer to loop or stop at the maximum
+				case '>':
+					$dataPtr += $count;
+					if(BI_LOOP_DATA_STRIP)
+						while($dataPtr > BI_MAX_DATA_LEN) $dataPtr -= BI_MAX_DATA_LEN;
+					else $dataPtr = BI_MAX_DATA_LEN;	// force the pointer to loop or stop at the maximum
+					break;
 							
-				case '<':	$dataPtr -= $count;
-						if(BI_LOOP_DATA_STRIP)
-							while($dataPtr < 0) $dataPtr += BI_MAX_DATA_LEN;
-						else $dataPtr = 0;								break;	// force the pointer to loop or stop at the start of the strip
+				case '<':
+					$dataPtr -= $count;
+					if(BI_LOOP_DATA_STRIP)
+						while($dataPtr < 0) $dataPtr += BI_MAX_DATA_LEN;
+					else $dataPtr = 0;	// force the pointer to loop or stop at the start of the strip
+					break;
 				
-				case '+':	$workingBuf = ord($data[$dataPtr]) + $count;						// convert the addition to an unsigned character.  wrap around on overflow as appropriate.
-						while($workingBuf > 255) {								// note that the count is not being added to ticks properly.
-							if(BI_LOOP_DATA_VAL)
-								$workingBuf -= 256;
-							else
-								$workingBuf = 255;
-						}
-						$data[$dataPtr] = chr($workingBuf);
-						$count = -1;									break;
-				
-				case '-':	$workingBuf = ord($data[$dataPtr]) - $count;						// convert the subtraction to an unsigned character.  wrap around on overflow as appropriate.
-						while($workingBuf < 0) {
-							if(BI_LOOP_DATA_VAL)
-								$workingBuf += 256;
-							else
-								$workingBuf = 0;
-						}
-						$data[$dataPtr] = chr($workingBuf);
-						$count = -1;									break;
-				
-				case ',':	if($input === NULL)
-							while($count--) $data[$dataPtr] = fgetc(BI_STDIN);
+				case '+':
+					$workingBuf = ord($data[$dataPtr]) + $count;						// convert the addition to an unsigned character.  wrap around on overflow as appropriate.
+					while($workingBuf > 255) {								// note that the count is not being added to ticks properly.
+						if(BI_LOOP_DATA_VAL)
+							$workingBuf -= 256;
 						else
-							while($count--) $data[$dataPtr] = $input[$inputPtr++];			break;
-							
-				case '.':	while(BI_MAX_OUTPUT_LEN && ($outputLen + $count) > BI_MAX_OUTPUT_LEN)
-							$count = BI_MAX_OUTPUT_LEN - $outputLen;
-						$outputLen += $count;
-						$output .= ($workingBuf = str_repeat($data[$dataPtr], $count));
-						echo $workingBuf;								break;
+							$workingBuf = 255;
+					}
+					$data[$dataPtr] = chr($workingBuf);
+					$count = -1;
+					break;
 				
-				case '[':	if(!ord($data[$dataPtr])) {
-							$depth = 0;
-							while($codePtr < $codeLen && ($code[++$codePtr] != ']' || $depth)) {
-								if($code[$codePtr] == '[')
-									$depth++;
-								else if($code[$codePtr] == ']')
-									$depth--;
-							}
-						}
+				case '-':
+					$workingBuf = ord($data[$dataPtr]) - $count;						// convert the subtraction to an unsigned character.  wrap around on overflow as appropriate.
+					while($workingBuf < 0) {
+						if(BI_LOOP_DATA_VAL)
+							$workingBuf += 256;
+						else
+							$workingBuf = 0;
+					}
+					$data[$dataPtr] = chr($workingBuf);
+					$count = -1;
+					break;
+				
+				case ',':
+					if($input === NULL)
+						while($count--) $data[$dataPtr] = fgetc(BI_STDIN);
+					else
+						while($count--) $data[$dataPtr] = $input[$inputPtr++];
+					break;
 							
-																break;
-				case ']':	//echo "<";
-						$loopPtr = $codePtr;
-						if(ord($data[$dataPtr])) {
-							$depth = 0;
-							while($loopPtr >= 0 && ($code[--$loopPtr] != '[' || $depth)) {
-								if($code[$loopPtr] == ']')
-									$depth++;
-								else if($code[$loopPtr] == '[')
-									$depth--;
-							}
-							if($loopPtr < 0)
-								$codePtr++;
-							else
-								$codePtr = $loopPtr;
-						} //echo ">";
-																break;
+				case '.':
+					while(BI_MAX_OUTPUT_LEN && ($outputLen + $count) > BI_MAX_OUTPUT_LEN)
+						$count = BI_MAX_OUTPUT_LEN - $outputLen;
+					$outputLen += $count;
+					$output .= ($workingBuf = str_repeat($data[$dataPtr], $count));
+					echo $workingBuf;
+					break;
+				
+				case '[':
+					if(!ord($data[$dataPtr])) {
+						$depth = 0;
+						while($codePtr < $codeLen && ($code[++$codePtr] != ']' || $depth)) {
+							if($code[$codePtr] == '[')
+								$depth++;
+							else if($code[$codePtr] == ']')
+								$depth--;
+						}
+					}
+					break;
+					
+				case ']':
+					$loopPtr = $codePtr;
+					if(ord($data[$dataPtr])) {
+						$depth = 0;
+						while($loopPtr >= 0 && ($code[--$loopPtr] != '[' || $depth)) {
+							if($code[$loopPtr] == ']')
+								$depth++;
+							else if($code[$loopPtr] == '[')
+								$depth--;
+						}
+						if($loopPtr < 0)
+							$codePtr++;
+						else
+							$codePtr = $loopPtr;
+					}
+					break;
 				
 				case '0': case '1': case '2': case '3': case '4':
 				case '5': case '6': case '7': case '8': case '9':
-						if(!BI_ENABLE_COUNT) {
-							$count = 1;
-							break;
-						}
-						if(!$counting) {
-							$count = 0;
-							$counting = TRUE;
-						}
-						$count *= 10;
-						$count += ord($code[$codePtr]) - 48;						break;
+					if(!BI_ENABLE_COUNT) {
+						$count = 1;
+						break;
+					}
+					if(!$counting) {
+						$count = 0;
+						$counting = TRUE;
+					}
+					$count *= 10;
+					$count += ord($code[$codePtr]) - 48;
+					break;
 				
 				default:
-						$counting = FALSE;
+					$counting = FALSE;
 			}
-			//echo $code[$codePtr];
+			
 			if(BI_DEBUG_SHOWTICKS)
 				echo "tick.";
 			
@@ -194,7 +208,6 @@ class BrainfuckInterpreter {
 			$codePtr++;
 		}
 		
-		//BrainfuckInterpreter::dumpData($data, 32);
 		return $output;
 	}
 	
